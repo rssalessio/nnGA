@@ -9,6 +9,7 @@ Our code is released under the MITlicense (refer to the [LICENSE](https://github
 
 ## Requirements
 To use the library you need atleast Python 3.
+To run the examples you need PyTorch.
 
 Other required dependencies:
 - NumPy
