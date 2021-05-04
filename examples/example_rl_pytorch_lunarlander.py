@@ -8,11 +8,13 @@
 # Code author: [Alessio Russo - alessior@kth.se]
 #
 
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
+sys.path.append("..")
 from nnga import nnGA
 
 # Example Reinforcement Learning - LunarLander

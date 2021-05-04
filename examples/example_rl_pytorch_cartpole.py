@@ -8,11 +8,13 @@
 # Code author: [Alessio Russo - alessior@kth.se]
 #
 
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
+sys.path.append("..")
 from nnga import nnGA
 
 # Example Reinforcement Learning - Cartpole
@@ -25,9 +27,7 @@ import gym
 
 def make_network(parameters=None):
     neural_network = torch.nn.Sequential(
-        torch.nn.Linear(4, 64),
-        torch.nn.ReLU(),
-        torch.nn.Linear(64, 2))
+        torch.nn.Linear(4, 64), torch.nn.ReLU(), torch.nn.Linear(64, 2))
 
     if parameters:
         state_dict = neural_network.state_dict()
