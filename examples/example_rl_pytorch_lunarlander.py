@@ -51,8 +51,9 @@ def fitness(data: list):
         state = env.reset()
         total_episode_reward = 0.
         while not done:
-            action = network(torch.tensor([state], dtype=torch.float32))
-            action = torch.argmax(action).item()
+            with torch.no_grad():
+                action = network(torch.tensor([state], dtype=torch.float32))
+                action = torch.argmax(action).item()
             state, reward, done, _ = env.step(action)
             total_episode_reward += reward
 
