@@ -27,13 +27,13 @@ def reshape(lst, base):
 
 class nnGA(object):
     def __init__(self,
-                 network_structure: list[tuple],
+                 network_structure: list,
                  epochs: int,
                  population_size: int,
                  fitness_function: callable,
                  fitness_function_args: tuple,
-                 exploration_noise: list[float],
-                 initial_parameters: list[np.array] = None,
+                 exploration_noise: list,
+                 initial_parameters: list = None,
                  elite_fraction: float = 0.1,
                  offsprings_from_elite_fraction: float = 0.2,
                  crossover_fraction: float = 0.5,
@@ -53,6 +53,13 @@ class nnGA(object):
             'on_epoch_start', 'on_epoch_end', 'on_evaluation',
             'population_constraints'
         ]
+
+        if crossover_type not in self.__crossover_types:
+            raise ValueError(
+                'Crossover type: {} not available'.format(crossover_type))
+
+        if np.any([x not in self.__callbacks for x in callbacks.keys()]):
+            raise ValueError('One of the callbacks is not available')
 
         self.epochs = int(epochs)
         self.network_structure = deepcopy(network_structure)
@@ -75,11 +82,17 @@ class nnGA(object):
             np.ceil(self.population_size * self.elite_fraction))
         if not np.isclose(elite_fraction + offsprings_from_elite_fraction + crossover_fraction \
                 + rnd_offsprings_fraction + leader_offsprings_fraction, 1.):
-            print(
+            raise ValueError(
                 'You have not provided a correct proportion for the elite/offsprings (it should sum to 1)'
             )
 
-    def _generate_initial_population(self):
+        if len(network_structure) == 1 and crossover_type == 'layer-based':
+            print('Attention, you passed a structure with just 1 layer!')
+            print('I can\'t use layer-based crossover.'
+                  'Switching to basic-crossover')
+            self.crossover_type = 'basic-crossover'
+
+    def _generate_initial_population(self) -> list:
         # Generate initial population
         if not self.initial_parameters:
             print('[NNGA] Sampled random initial population.')
@@ -94,7 +107,7 @@ class nnGA(object):
             ])
         return population
 
-    def _select_elite_population(self, population, fitesses):
+    def _select_elite_population(self, population, fitnesses):
         # Select elite population
         elite = sorted(
             zip(fitnesses, population), key=lambda x: x[0],
@@ -145,7 +158,7 @@ class nnGA(object):
 
         return best_network, best_result, results
 
-    def _evolve_population(self, elite_population):
+    def _evolve_population(self, elite_population: list) -> list:
         offsprings_from_elite = int(
             np.ceil(
                 self.population_size * self.offsprings_from_elite_fraction))
@@ -189,26 +202,26 @@ class nnGA(object):
         offsprings.extend([self._random_network() for _ in range(duplicates)])
         return offsprings
 
-    def _random_network(self):
+    def _random_network(self) -> list:
         return [np.random.normal(size=x) for x in self.network_structure]
 
-    def _mutate_network(self, network: list[np.array]):
+    def _mutate_network(self, network: list) -> list:
         return [
             network[i] + np.random.normal(size=x) * self.exploration_noise[i]
             for i, x in enumerate(self.network_structure, 0)
         ]
 
-    def _evaluate_population(self, population: list[np.array]):
-        with mp.pool(self.num_processors) as processes:
+    def _evaluate_population(self, population: list) -> list:
+        with mp.Pool(self.num_processors) as processes:
             __args = [(
                 idx,
                 x,
                 *self.fitness_function_args,
             ) for idx, x in enumerate(population, 0)]
-            fitnesses = list(_processes.map(self.fitness_function, __args))
+            fitnesses = list(processes.map(self.fitness_function, __args))
         return fitnesses
 
-    def _crossover(self, n: int, elite_population: list[np.array]):
+    def _crossover(self, n: int, elite_population: list) -> list:
         if not n > 0 or self.crossover_type == 'none':
             return []
         L = len(elite_population)
@@ -227,7 +240,7 @@ class nnGA(object):
             for x, y in couples
         ]
 
-    def _crossover_couple(self, x: list[np.array], y: list[np.array]):
+    def _crossover_couple(self, x: list, y: list) -> list:
         if self.crossover_type == 'mutate-parents':
             # Randomly mutate the father or the mother
             return self._mutate_network(x) if np.random.uniform() < 0.5 else \
