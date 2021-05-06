@@ -14,7 +14,7 @@ from .mutation_strategy import *
 from .crossover_strategy import *
 from .population_parameters import *
 
-__version__       = '0.2'
-__author__        = 'Alessio Russo'
-__contributors__  = []
-__date__          = '06.05.2021'
+__version__ = '0.2'
+__author__ = 'Alessio Russo'
+__contributors__ = []
+__date__ = '06.05.2021'

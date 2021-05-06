@@ -9,6 +9,7 @@
 
 import numpy as np
 
+
 class InitializationStrategy(object):
     def __init__(self, network_structure: list):
         self.network_structure = network_structure
@@ -33,8 +34,10 @@ class GaussianInitializationStrategy(InitializationStrategy):
         assert np.all(np.asarray(self.std) > 0)
 
     def sample_network(self) -> list:
-        return [self.mean[idx] + self.std[idx] * np.random.normal(size=x)
-                for idx, x in enumerate(self.network_structure)]
+        return [
+            self.mean[idx] + self.std[idx] * np.random.normal(size=x)
+            for idx, x in enumerate(self.network_structure)
+        ]
 
 
 class UniformInitializationStrategy(InitializationStrategy):
@@ -54,6 +57,7 @@ class UniformInitializationStrategy(InitializationStrategy):
         assert np.all(np.asarray(self.high) > np.asarray(self.low))
 
     def sample_network(self) -> list:
-        return [np.random.uniform(low=self.low[idx], high=self.high[idx], size=x)
-                for idx, x in enumerate(self.network_structure)]
-
+        return [
+            np.random.uniform(low=self.low[idx], high=self.high[idx], size=x)
+            for idx, x in enumerate(self.network_structure)
+        ]

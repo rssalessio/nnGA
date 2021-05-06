@@ -55,8 +55,9 @@ class LayerBasedCrossoverStrategy(CrossoverStrategy):
         self.name = 'layer-based'
 
         if len(self.network_structure) == 1:
-            raise ValueError('Attention, you passed a structure with just 1 layer!'
-                            'I can\'t use layer-based crossover.')
+            raise ValueError(
+                'Attention, you passed a structure with just 1 layer!'
+                'I can\'t use layer-based crossover.')
 
     def crossover(self, x: list, y: list) -> list:
         # Choose a layer that acts as a crossover point
@@ -67,13 +68,14 @@ class LayerBasedCrossoverStrategy(CrossoverStrategy):
             for i in range(len(self.network_structure))
         ]
 
+
 class BasicCrossoverStrategy(CrossoverStrategy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'basic'
 
     def crossover(self, x: list, y: list) -> list:
-       # Flatten parents' parameters
+        # Flatten parents' parameters
         x_flattened = reduce(lambda a, b: a + b,
                              [k.flatten().tolist() for k in x])
         y_flattened = reduce(lambda a, b: a + b,
@@ -84,7 +86,5 @@ class BasicCrossoverStrategy(CrossoverStrategy):
 
         # Generate offspring
         offspring = deepcopy(x_flattened)
-        offspring[crossover_point:] = deepcopy(
-            y_flattened[crossover_point:])
+        offspring[crossover_point:] = deepcopy(y_flattened[crossover_point:])
         return reshape(offspring, x)
-
