@@ -15,7 +15,9 @@ import torch
 import torch.nn as nn
 
 sys.path.append("..")
-from nnga import nnGA
+from nnga import nnGA, GaussianInitializationStrategy, \
+    GaussianMutationStrategy, LayerBasedCrossoverStrategy, \
+    PopulationParameters
 
 # Example Reinforcement Learning - Cartpole
 # ------------
@@ -62,7 +64,6 @@ def fitness(data: list):
 
 
 def on_evaluation(epoch, fitnesses, population, best_result, best_network):
-    print('[Epoch: {}] Best result: {:.3f}'.format(epoch, best_result))
     if best_result > 495:
         return True
     return False
@@ -71,14 +72,20 @@ def on_evaluation(epoch, fitnesses, population, best_result, best_network):
 if __name__ == '__main__':
     nn = make_network().state_dict()
     network_structure = [list(v.shape) for _, v in nn.items()]
+    population = PopulationParameters(population_size=100)
+    mutation = GaussianMutationStrategy(network_structure, 1e-1)
+    crossover = LayerBasedCrossoverStrategy(network_structure)
+    init = GaussianInitializationStrategy(
+        mean=0., std=1., network_structure=network_structure)
+
     ga = nnGA(
-        network_structure=network_structure,
         epochs=100,
-        population_size=100,
         fitness_function=fitness,
         fitness_function_args=(100, ),
-        exploration_noise=[1e-1] * len(network_structure),
-        crossover_type='layer-based',
+        population_parameters=population,
+        mutation_strategy=mutation,
+        initialization_strategy=init,
+        crossover_strategy=crossover,
         callbacks={'on_evaluation': on_evaluation},
-        num_processors=8)
+        num_processors=2)
     ga.run()
