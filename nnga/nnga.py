@@ -71,7 +71,7 @@ class nnGA(object):
                 for _ in range(self.population.size)
             ]
         else:
-            logger.info('Loaded intial popolation.')
+            logger.info('Loaded initial popolation.')
             population = self._evolve_population([
                 deepcopy(self.initial_parameters)
                 for _ in range(self.population.elite_size)
