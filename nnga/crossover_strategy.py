@@ -8,6 +8,9 @@
 # Code author: [Alessio Russo - alessior@kth.se]
 
 import numpy as np
+from functools import reduce
+from copy import deepcopy
+
 
 def reshape(lst, base):
     last = 0
@@ -30,8 +33,8 @@ class CrossoverStrategy(object):
 
 
 class MutateParentsCrossoverStrategy(CrossoverStrategy):
-    def __init__(self, p=0.5, mutation_strategy, *args):
-        super().__init__(*args)
+    def __init__(self, p, mutation_strategy, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.p = p
         self.mutation_strategy = mutation_strategy
         self.name = 'mutate-parents'
@@ -47,8 +50,8 @@ class MutateParentsCrossoverStrategy(CrossoverStrategy):
 
 
 class LayerBasedCrossoverStrategy(CrossoverStrategy):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.name = 'layer-based'
 
         if len(self.network_structure) == 1:
@@ -65,8 +68,8 @@ class LayerBasedCrossoverStrategy(CrossoverStrategy):
         ]
 
 class BasicCrossoverStrategy(CrossoverStrategy):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.name = 'basic'
 
     def crossover(self, x: list, y: list) -> list:

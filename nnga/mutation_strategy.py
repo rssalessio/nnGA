@@ -14,15 +14,18 @@ class MutationStrategy(object):
         self.network_structure = network_structure
         self.exploration_noise = exploration_noise
 
-        if len(exploration_noise) != len(network_structure):
+        if isinstance(exploration_noise, float):
+            self.exploration_noise = [exploration_noise] * len(network_structure)
+
+        if len(self.exploration_noise) != len(network_structure):
             raise ValueError('You should define an exploration noise for each layer.')
 
     def mutate(self, network: list) -> list:
         return network
 
 class GaussianMutationStrategy(MutationStrategy):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def mutate(self, network: list) -> list:
         return [
@@ -31,8 +34,8 @@ class GaussianMutationStrategy(MutationStrategy):
         ]
 
 class UniformMutationStrategy(MutationStrategy):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def mutate(self, network: list) -> list:
         return [

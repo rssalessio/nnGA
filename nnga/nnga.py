@@ -9,7 +9,8 @@
 
 import multiprocessing as mp
 import numpy as np
-from functools import reduce
+import logging
+import time
 from copy import deepcopy
 
 from .crossover_strategy import CrossoverStrategy
@@ -17,10 +18,20 @@ from .initialization_strategy import InitializationStrategy
 from .mutation_strategy import MutationStrategy
 from .population_parameters import PopulationParameters
 
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="[nnGA] [%(asctime)s] [%(levelname)-5.5s] %(message)s",
+    handlers=[
+        logging.FileHandler("nnGA.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('nnGA')
+
 
 class nnGA(object):
     def __init__(self,
-                 network_structure: list,
                  epochs: int,
                  fitness_function: callable,
                  fitness_function_args: tuple,
@@ -41,7 +52,6 @@ class nnGA(object):
             raise ValueError('One of the callbacks is not available')
 
         self.epochs = int(epochs)
-        self.network_structure = deepcopy(network_structure)
         self.population = population_parameters
 
 
@@ -60,12 +70,12 @@ class nnGA(object):
     def _generate_initial_population(self) -> list:
         # Generate initial population
         if not self.initial_parameters:
-            print('[NNGA] Sampled random initial population.')
+            logger.info('Sampled random initial population.')
             population = [
                 self.initialization_strategy.sample_network() for _ in range(self.population.size)
             ]
         else:
-            print('[NNGA] Loaded intial popolation.')
+            logger.info('Loaded intial popolation.')
             population = self._evolve_population([
                 deepcopy(self.initial_parameters)
                 for _ in range(self.population.elite_size)
@@ -83,12 +93,14 @@ class nnGA(object):
         return best_result, best_network, elite_pop
 
     def run(self):
+        logger.info('Starting nnGA')
         best_network, best_result = None, 0.
         results = []
 
         population = self._generate_initial_population()
 
         for epoch in range(self.epochs):
+            logger.info('Beginning of epoch {}'.format(epoch))
             if 'on_epoch_start' in self.callbacks:
                 if self.callbacks['on_epoch_start'](epoch, population,
                                                     best_result, best_network):
@@ -96,6 +108,11 @@ class nnGA(object):
 
             # Evaluate population
             fitnesses = self._evaluate_population(population)
+            logger.info('Best/mean/min/std values: {:.3f}/{:.3f}/{:.3f}/{:.3f}'.format(
+                            np.max(fitnesses),
+                            np.mean(fitnesses),
+                            np.min(fitnesses),
+                            np.std(fitnesses)))
             results.append(fitnesses)
 
             # Select elite
@@ -119,11 +136,12 @@ class nnGA(object):
                 if self.callbacks['on_epoch_end'](epoch, fitnesses, population,
                                                   best_result, best_network):
                     break
-
+        logger.info('Search completed.')
         return best_network, best_result, results
 
     def _evolve_population(self, elite_population: list) -> list:
         # Add elite to population
+        offsprings = []
         offsprings.extend(deepcopy(elite_population))
 
         # Mutate elite
@@ -141,7 +159,8 @@ class nnGA(object):
         ])
 
         # Perform crossover
-        offsprings.extend(self._crossover(crossover, elite_population))
+        offsprings.extend(self._crossover(
+            self.population.crossover_size, elite_population))
 
         # Add random points
         while len(offsprings) < self.population.size:
@@ -156,6 +175,7 @@ class nnGA(object):
         return offsprings
 
     def _evaluate_population(self, population: list) -> list:
+        time_start = time.time()
         with mp.Pool(self.num_processors) as processes:
             __args = [(
                 idx,
@@ -163,6 +183,7 @@ class nnGA(object):
                 *self.fitness_function_args,
             ) for idx, x in enumerate(population, 0)]
             fitnesses = list(processes.map(self.fitness_function, __args))
+        logger.info('Completed evaluation in {:.3f} [s].'.format(time.time()-time_start))
         return fitnesses
 
     def _crossover(self, n: int, elite_population: list) -> list:
@@ -185,7 +206,7 @@ class nnGA(object):
         ]
 
     def _crossover_couple(self, x: list, y: list) -> list:
-        offspring = self.crossover_strategy.crossover(elite_population[x], elite_population[y])
+        offspring = self.crossover_strategy.crossover(x, y)
 
         if np.random.uniform() < self.population.crossover_mutation_probability:
             offspring = self.mutation_strategy.mutate(offspring)
