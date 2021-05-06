@@ -1,4 +1,4 @@
-# nnGA Library - Neural Network Genetic Algorithm Library (v0.0.1)
+# nnGA Library - Neural Network Genetic Algorithm Library (v0.2)
 
 Off the shelf Genetic Algorithm library for deep learning problems
 

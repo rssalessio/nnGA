@@ -9,8 +9,10 @@
 #
 
 from .nnga import *
+from .initialization_strategy import *
+from .mutation_strategy import *
 
-__version__       = '0.0.1'
+__version__       = '0.2'
 __author__        = 'Alessio Russo'
 __contributors__  = []
-__date__          = '10.04.2021'
+__date__          = '06.05.2021'
