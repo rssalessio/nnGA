@@ -12,98 +12,63 @@ import numpy as np
 from functools import reduce
 from copy import deepcopy
 
-
-def reshape(lst, base):
-    last = 0
-    res = []
-    for ele in base:
-        S = np.shape(ele)
-        L = np.prod(S)
-        res.append(np.reshape(lst[last:last + L], S))
-        last += L
-
-    return res
+from .crossover_strategy import CrossoverStrategy
+from .initialization_strategy import InitializationStrategy
+from .mutation_strategy import MutationStrategy
+from .population_parameters import PopulationParameters
 
 
 class nnGA(object):
     def __init__(self,
                  network_structure: list,
                  epochs: int,
-                 population_size: int,
                  fitness_function: callable,
                  fitness_function_args: tuple,
-                 exploration_noise: list,
+                 population_parameters: PopulationParameters,
+                 crossover_strategy: CrossoverStrategy,
+                 initialization_strategy: InitializationStrategy,
+                 mutation_strategy: MutationStrategy,
                  initial_parameters: list = None,
-                 elite_fraction: float = 0.1,
-                 offsprings_from_elite_fraction: float = 0.2,
-                 crossover_fraction: float = 0.5,
-                 rnd_offsprings_fraction: float = 0.1,
-                 leader_offsprings_fraction: float = 0.1,
-                 crossover_type: str = 'layer-based',
-                 crossover_mutation_probability: float = 0.1,
                  callbacks: dict = {},
                  num_processors: int = 1):
-
-        self.__crossover_types = [
-            'basic-crossover', 'layer-based', 'mutate-parents'
-            'none'
-        ]
 
         self.__callbacks = [
             'on_epoch_start', 'on_epoch_end', 'on_evaluation',
             'population_constraints'
         ]
 
-        if crossover_type not in self.__crossover_types:
-            raise ValueError(
-                'Crossover type: {} not available'.format(crossover_type))
-
         if np.any([x not in self.__callbacks for x in callbacks.keys()]):
             raise ValueError('One of the callbacks is not available')
 
         self.epochs = int(epochs)
         self.network_structure = deepcopy(network_structure)
-        self.population_size = int(population_size)
-        self.elite_fraction = float(elite_fraction)
-        self.offsprings_from_elite_fraction = float(
-            offsprings_from_elite_fraction)
-        self.crossover_fraction = float(crossover_fraction)
-        self.rnd_offsprings_fraction = float(rnd_offsprings_fraction)
-        self.leader_offsprings_fraction = float(leader_offsprings_fraction)
+        self.population = population_parameters
+
+
         self.fitness_function = fitness_function
         self.fitness_function_args = fitness_function_args
-        self.exploration_noise = exploration_noise
-        self.crossover_type = crossover_type
-        self.crossover_mutation_probability = crossover_mutation_probability
         self.callbacks = callbacks
+
         self.num_processors = num_processors
         self.initial_parameters = initial_parameters
-        self.elite_size = int(
-            np.ceil(self.population_size * self.elite_fraction))
-        if not np.isclose(elite_fraction + offsprings_from_elite_fraction + crossover_fraction \
-                + rnd_offsprings_fraction + leader_offsprings_fraction, 1.):
-            raise ValueError(
-                'You have not provided a correct proportion for the elite/offsprings (it should sum to 1)'
-            )
+        
+        self.mutation_strategy = mutation_strategy
+        self.initialization_strategy = initialization_strategy
+        self.crossover_strategy = crossover_strategy
 
-        if len(network_structure) == 1 and crossover_type == 'layer-based':
-            print('Attention, you passed a structure with just 1 layer!')
-            print('I can\'t use layer-based crossover.'
-                  'Switching to basic-crossover')
-            self.crossover_type = 'basic-crossover'
 
     def _generate_initial_population(self) -> list:
         # Generate initial population
         if not self.initial_parameters:
             print('[NNGA] Sampled random initial population.')
             population = [
-                self._random_network() for _ in range(self.population_size)
+                self.initialization_strategy.sample_network() for _ in range(self.population.size)
             ]
         else:
             print('[NNGA] Loaded intial popolation.')
             population = self._evolve_population([
                 deepcopy(self.initial_parameters)
-                for _ in range(self.elite_size)
+                for _ in range(self.population.elite_size)
             ])
         return population
 
@@ -111,14 +76,13 @@ class nnGA(object):
         # Select elite population
         elite = sorted(
             zip(fitnesses, population), key=lambda x: x[0],
-            reverse=True)[:self.elite_size]
+            reverse=True)[:self.population.elite_size]
         elite_res, elite_pop = zip(*elite)
         best_network = deepcopy(elite_pop[0])
         best_result = elite_res[0]
         return best_result, best_network, elite_pop
 
     def run(self):
-
         best_network, best_result = None, 0.
         results = []
 
@@ -159,57 +123,37 @@ class nnGA(object):
         return best_network, best_result, results
 
     def _evolve_population(self, elite_population: list) -> list:
-        offsprings_from_elite = int(
-            np.ceil(
-                self.population_size * self.offsprings_from_elite_fraction))
-        crossover = int(
-            np.ceil(self.population_size * self.crossover_fraction))
-        rnd_offsprings = int(
-            np.ceil(self.population_size * self.rnd_offsprings_fraction))
-        leader_offsprings = int(
-            np.ceil(self.population_size * self.leader_offsprings_fraction))
-        offsprings = []
-
         # Add elite to population
         offsprings.extend(deepcopy(elite_population))
 
         # Mutate elite
-        while len(offsprings) < offsprings_from_elite:
+        while len(offsprings) < self.population.offsprings_from_elite_group:
             for x in elite_population:
-                offsprings.append(self._mutate_network(x))
-                if len(offsprings) >= offsprings_from_elite:
+                offsprings.append(self.mutation_strategy.mutate(x))
+                if len(offsprings) >= self.population.offsprings_from_elite_group:
                     break
 
         # Add additional offsprings for the leader
         # Idx 0 is the best network
         offsprings.extend([
-            self._mutate_network(elite_population[0])
-            for _ in range(leader_offsprings)
+            self.mutation_strategy.mutate(elite_population[0])
+            for _ in range(self.population.offsprings_from_elite_leader)
         ])
 
         # Perform crossover
         offsprings.extend(self._crossover(crossover, elite_population))
 
         # Add random points
-        while len(offsprings) < self.population_size:
-            offsprings.append(self._random_network())
+        while len(offsprings) < self.population.size:
+            offsprings.append(self.initialization_strategy.sample_network())
 
-        offsprings = offsprings[:self.population_size]
+        offsprings = offsprings[:self.population.size]
 
         # Make sure we have a unique population, if not, add new elements.
         duplicates = len(offsprings) - len(
             set(map(lambda x: hash(str(x)), offsprings)))
-        offsprings.extend([self._random_network() for _ in range(duplicates)])
+        offsprings.extend([self.initialization_strategy.sample_network() for _ in range(duplicates)])
         return offsprings
-
-    def _random_network(self) -> list:
-        return [np.random.normal(size=x) for x in self.network_structure]
-
-    def _mutate_network(self, network: list) -> list:
-        return [
-            network[i] + np.random.normal(size=x) * self.exploration_noise[i]
-            for i, x in enumerate(self.network_structure, 0)
-        ]
 
     def _evaluate_population(self, population: list) -> list:
         with mp.Pool(self.num_processors) as processes:
@@ -222,7 +166,7 @@ class nnGA(object):
         return fitnesses
 
     def _crossover(self, n: int, elite_population: list) -> list:
-        if not n > 0 or self.crossover_type == 'none':
+        if not n > 0 or self.crossover_strategy is None:
             return []
         L = len(elite_population)
 
@@ -241,42 +185,13 @@ class nnGA(object):
         ]
 
     def _crossover_couple(self, x: list, y: list) -> list:
-        if self.crossover_type == 'mutate-parents':
-            # Randomly mutate the father or the mother
-            return self._mutate_network(x) if np.random.uniform() < 0.5 else \
-                        self._mutate_network(y)
-        elif self.crossover_type == 'layer-based':
-            # Choose a layer that acts as a crossover point
-            crossover_point = np.random.randint(
-                low=1, high=len(self.network_structure))
-            offspring = [
-                x[i] if i < crossover_point else y[i]
-                for i in range(len(self.network_structure))
-            ]
-        elif self.crossover_type == 'basic-crossover':
-            # Flatten parents' parameters
-            x_flattened = reduce(lambda a, b: a + b,
-                                 [k.flatten().tolist() for k in x])
-            y_flattened = reduce(lambda a, b: a + b,
-                                 [k.flatten().tolist() for k in y])
+        offspring = self.crossover_strategy.crossover(elite_population[x], elite_population[y])
 
-            # Choose crossover point
-            crossover_point = np.random.randint(low=1, high=len(x_flattened))
-
-            # Generate offspring
-            offspring = deepcopy(x_flattened)
-            offspring[crossover_point:] = deepcopy(
-                y_flattened[crossover_point:])
-            offspring = reshape(offspring, x)
-        else:
-            raise ValueError('Crossover type {} not implemented'.format(
-                self.crossover_type))
-
-        if np.random.uniform() < self.crossover_mutation_probability:
-            offspring = self._mutate_network(offspring)
+        if np.random.uniform() < self.population.crossover_mutation_probability:
+            offspring = self.mutation_strategy.mutate(offspring)
 
         offspring_hash = hash(str(offspring))
         while hash(str(x)) == offspring_hash or hash(str(y)) == offspring_hash:
-            offspring = self._mutate_network(offspring)
+            offspring = self.mutation_strategy.mutate(offspring)
             offspring_hash = hash(str(offspring))
         return offspring

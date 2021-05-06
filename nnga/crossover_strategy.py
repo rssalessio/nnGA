@@ -51,6 +51,10 @@ class LayerBasedCrossoverStrategy(CrossoverStrategy):
         super().__init__(*args)
         self.name = 'layer-based'
 
+        if len(self.network_structure) == 1:
+            raise ValueError('Attention, you passed a structure with just 1 layer!'
+                            'I can\'t use layer-based crossover.')
+
     def crossover(self, x: list, y: list) -> list:
         # Choose a layer that acts as a crossover point
         crossover_point = np.random.randint(

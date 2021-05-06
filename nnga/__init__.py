@@ -11,6 +11,8 @@
 from .nnga import *
 from .initialization_strategy import *
 from .mutation_strategy import *
+from .crossover_strategy import *
+from .population_parameters import *
 
 __version__       = '0.2'
 __author__        = 'Alessio Russo'
