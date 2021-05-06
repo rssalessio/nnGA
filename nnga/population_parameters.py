@@ -29,15 +29,12 @@ class PopulationParameters(object):
         self.rnd_offsprings_fraction = rnd_offsprings_fraction
         self.crossover_mutation_probability = crossover_mutation_probability
 
-        if not np.isclose(elite_fraction
-                          + offsprings_from_elite_leader_fraction
-                          + crossover_fraction
-                          + rnd_offsprings_fraction
-                          + offsprings_from_elite_group_fraction, 1.):
-            raise ValueError(
-                'You have not provided a correct proportion for'
-                'the elite/offsprings (it should sum to 1)'
-            )
+        if not np.isclose(
+                elite_fraction + offsprings_from_elite_leader_fraction +
+                crossover_fraction + rnd_offsprings_fraction +
+                offsprings_from_elite_group_fraction, 1.):
+            raise ValueError('You have not provided a correct proportion for'
+                             'the elite/offsprings (it should sum to 1)')
 
     @property
     def size(self):
