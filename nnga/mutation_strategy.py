@@ -39,8 +39,8 @@ class MutationStrategy(object):
     def update_exploration_rate(self, epoch):
         if self.exploration_rate_scheduler:
             x = self.initial_epoch + epoch
-            self.exploration_rate_scheduler(x, self.network_structure,
-                                            self.exploration_noise)
+            self.exploration_noise = self.exploration_rate_scheduler(
+                x, self.network_structure, self.exploration_noise)
 
 
 class GaussianMutationStrategy(MutationStrategy):
