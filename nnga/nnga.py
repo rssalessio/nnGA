@@ -71,11 +71,16 @@ class nnGA(object):
                 for _ in range(self.population.size)
             ]
         else:
-            logger.info('Loaded initial popolation.')
-            population = self._evolve_population([
-                deepcopy(self.initial_parameters)
-                for _ in range(self.population.elite_size)
-            ])
+            population = [deepcopy(x) for x in self.initial_parameters]
+            while len(population) < self.population.size:
+                for x in self.initial_parameters:
+                    population.append(
+                        self.mutation_strategy.mutate(deepcopy(x)))
+                    if len(population) >= self.population.size:
+                        break
+
+            population = population[:self.population.size]
+            logger.info('Loaded intial popolation.')
         return population
 
     def _select_elite_population(self, population, fitnesses):
