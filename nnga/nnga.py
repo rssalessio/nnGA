@@ -36,7 +36,7 @@ class nnGA(object):
                  crossover_strategy: CrossoverStrategy,
                  initialization_strategy: InitializationStrategy,
                  mutation_strategy: MutationStrategy,
-                 initial_parameters: list = None,
+                 initial_population: list = None,
                  callbacks: dict = {},
                  num_processors: int = 1):
 
@@ -56,7 +56,7 @@ class nnGA(object):
         self.callbacks = callbacks
 
         self.num_processors = num_processors
-        self.initial_parameters = initial_parameters
+        self.initial_population = initial_population
 
         self.mutation_strategy = mutation_strategy
         self.initialization_strategy = initialization_strategy
@@ -64,16 +64,16 @@ class nnGA(object):
 
     def _generate_initial_population(self) -> list:
         # Generate initial population
-        if not self.initial_parameters:
+        if not self.initial_population:
             logger.info('Sampled random initial population.')
             population = [
                 self.initialization_strategy.sample_network()
                 for _ in range(self.population.size)
             ]
         else:
-            population = [deepcopy(x) for x in self.initial_parameters]
+            population = [deepcopy(x) for x in self.initial_population]
             while len(population) < self.population.size:
-                for x in self.initial_parameters:
+                for x in self.initial_population:
                     population.append(
                         self.mutation_strategy.mutate(deepcopy(x)))
                     if len(population) >= self.population.size:
