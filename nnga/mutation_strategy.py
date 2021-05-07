@@ -14,14 +14,12 @@ class MutationStrategy(object):
     def __init__(self,
                  network_structure: list,
                  exploration_noise: list,
-                 exploration_rate_scheduler: callable = None):
+                 exploration_rate_scheduler: callable = None,
+                 initial_epoch: int = 0):
         self.network_structure = network_structure
         self.exploration_noise = exploration_noise
         self.exploration_rate_scheduler = exploration_rate_scheduler
-
-        if exploration_rate_scheduler and \
-                not isinstance(exploration_rate_scheduler, callable):
-            raise ValueError('Exploration rate scheduler should be a callable')
+        self.initial_epoch = initial_epoch
 
         if isinstance(exploration_noise, float):
             self.exploration_noise = [exploration_noise
@@ -31,12 +29,17 @@ class MutationStrategy(object):
             raise ValueError(
                 'You should define an exploration noise for each layer.')
 
+        if initial_epoch > 0 and exploration_rate_scheduler:
+            self.exploration_rate_scheduler(
+                initial_epoch, self.network_structure, self.exploration_noise)
+
     def mutate(self, network: list) -> list:
         return network
 
     def update_exploration_rate(self, epoch):
         if self.exploration_rate_scheduler:
-            self.exploration_rate_scheduler(epoch, self.network_structure,
+            x = self.initial_epoch + epoch
+            self.exploration_rate_scheduler(x, self.network_structure,
                                             self.exploration_noise)
 
 
