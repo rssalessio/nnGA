@@ -9,30 +9,23 @@
 #
 
 import sys
-import numpy as np
-import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
-
+import gym
 sys.path.append("..")
+
 from nnga import nnGA, GaussianInitializationStrategy, \
     GaussianMutationStrategy, BasicCrossoverStrategy, \
     PopulationParameters
-
 
 # Example Reinforcement Learning - LunarLander
 # ------------
 # In this example we see how to use Genetic Algorithms
 # to solve the discrete LunarLander environment
 
-import gym
-
 
 def make_network(parameters=None):
     neural_network = torch.nn.Sequential(
-        torch.nn.Linear(8, 64),
-        torch.nn.ReLU(),
-        torch.nn.Linear(64, 4))
+        torch.nn.Linear(8, 64), torch.nn.ReLU(), torch.nn.Linear(64, 4))
 
     if parameters:
         state_dict = neural_network.state_dict()
@@ -42,10 +35,8 @@ def make_network(parameters=None):
     return neural_network
 
 
-def fitness(data: list):
-    idx, parameters, episodes = data
+def fitness(idx, parameters, episodes):
     env = gym.make('LunarLander-v2')
-    episode_reward_list = []
     network = make_network(parameters)
 
     avg_total_reward = 0.
@@ -84,14 +75,16 @@ if __name__ == '__main__':
     init = GaussianInitializationStrategy(
         mean=0., std=1., network_structure=network_structure)
 
+    def _fitness(args):
+        return fitness(*args, episodes=10)
+
     ga = nnGA(
         epochs=50,
-        fitness_function=fitness,
-        fitness_function_args=(10, ),
+        fitness_function=_fitness,
         population_parameters=population,
         mutation_strategy=mutation,
         initialization_strategy=init,
         crossover_strategy=crossover,
         callbacks={'on_evaluation': on_evaluation},
-        num_processors=2)
+        num_processors=8)
     ga.run()

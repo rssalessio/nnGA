@@ -10,11 +10,10 @@
 
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
-
+import gym
 sys.path.append("..")
+
 from nnga import nnGA, GaussianInitializationStrategy, \
     GaussianMutationStrategy, LayerBasedCrossoverStrategy, \
     PopulationParameters
@@ -23,8 +22,6 @@ from nnga import nnGA, GaussianInitializationStrategy, \
 # ------------
 # In this example we see how to use Genetic Algorithms
 # to solve the cartpole environment
-
-import gym
 
 
 def make_network(parameters=None):
@@ -39,10 +36,8 @@ def make_network(parameters=None):
     return neural_network
 
 
-def fitness(data: list):
-    idx, parameters, episodes = data
+def fitness(idx, parameters, episodes):
     env = gym.make('CartPole-v1')
-    episode_reward_list = []
     network = make_network(parameters)
 
     rewards = []
@@ -78,14 +73,16 @@ if __name__ == '__main__':
     init = GaussianInitializationStrategy(
         mean=0., std=1., network_structure=network_structure)
 
+    def _fitness(args):
+        return fitness(*args, episodes=100)
+
     ga = nnGA(
         epochs=100,
-        fitness_function=fitness,
-        fitness_function_args=(100, ),
+        fitness_function=_fitness,
         population_parameters=population,
         mutation_strategy=mutation,
         initialization_strategy=init,
         crossover_strategy=crossover,
         callbacks={'on_evaluation': on_evaluation},
-        num_processors=2)
+        num_processors=8)
     ga.run()

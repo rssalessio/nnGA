@@ -12,6 +12,7 @@ import numpy as np
 import logging
 import time
 from copy import deepcopy
+from typing import Callable, Tuple, Mapping
 
 from .crossover_strategy import CrossoverStrategy
 from .initialization_strategy import InitializationStrategy
@@ -28,17 +29,18 @@ logger = logging.getLogger('nnGA')
 
 
 class nnGA(object):
-    def __init__(self,
-                 epochs: int,
-                 fitness_function: callable,
-                 fitness_function_args: tuple,
-                 population_parameters: PopulationParameters,
-                 crossover_strategy: CrossoverStrategy,
-                 initialization_strategy: InitializationStrategy,
-                 mutation_strategy: MutationStrategy,
-                 initial_population: list = None,
-                 callbacks: dict = {},
-                 num_processors: int = 1):
+    def __init__(
+            self,
+            epochs: int,
+            fitness_function: Callable[[int, list], float],
+            population_parameters: PopulationParameters,
+            crossover_strategy: CrossoverStrategy,
+            initialization_strategy: InitializationStrategy,
+            mutation_strategy: MutationStrategy,
+            initial_population: list = None,
+            callbacks: Mapping[
+                str, Callable[[int, list, list, float, list], float]] = {},
+            num_processors: int = 1):
 
         self.__callbacks = [
             'on_epoch_start', 'on_epoch_end', 'on_evaluation',
@@ -52,7 +54,6 @@ class nnGA(object):
         self.population = population_parameters
 
         self.fitness_function = fitness_function
-        self.fitness_function_args = fitness_function_args
         self.callbacks = callbacks
 
         self.num_processors = num_processors
@@ -80,7 +81,7 @@ class nnGA(object):
                         break
 
             population = population[:self.population.size]
-            logger.info('Loaded intial popolation.')
+            logger.info('Loaded intial population.')
         return population
 
     def _select_elite_population(self, population, fitnesses):
@@ -149,7 +150,7 @@ class nnGA(object):
         while len(offsprings) < self.population.offsprings_from_elite_group:
             offsprings.append(
                 self.mutation_strategy.mutate(
-                    np.random.choice(elite_population)))
+                    elite_population[np.random.choice(len(elite_population))]))
 
         offsprings.extend(deepcopy(elite_population))
         # Add additional offsprings for the leader
@@ -184,7 +185,6 @@ class nnGA(object):
             __args = [(
                 idx,
                 x,
-                *self.fitness_function_args,
             ) for idx, x in enumerate(population, 0)]
             fitnesses = list(processes.map(self.fitness_function, __args))
         logger.info('Completed evaluation in {:.3f} [s].'.format(time.time() -
