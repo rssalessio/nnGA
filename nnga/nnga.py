@@ -144,16 +144,14 @@ class nnGA(object):
     def _evolve_population(self, elite_population: list) -> list:
         # Add elite to population
         offsprings = []
-        offsprings.extend(deepcopy(elite_population))
 
         # Mutate elite
         while len(offsprings) < self.population.offsprings_from_elite_group:
-            for x in elite_population:
-                offsprings.append(self.mutation_strategy.mutate(x))
-                if len(offsprings
-                       ) >= self.population.offsprings_from_elite_group:
-                    break
+            offsprings.append(
+                self.mutation_strategy.mutate(
+                    np.random.choice(elite_population)))
 
+        offsprings.extend(deepcopy(elite_population))
         # Add additional offsprings for the leader
         # Idx 0 is the best network
         offsprings.extend([
