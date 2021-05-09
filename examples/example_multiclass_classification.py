@@ -15,7 +15,7 @@ sys.path.append("..")
 
 
 from nnga import nnGA, GaussianInitializationStrategy, \
-    GaussianMutationStrategy, LayerBasedCrossoverStrategy, \
+    GaussianMutationStrategy, Best1BinCrossoverStrategy, \
     PopulationParameters
 
 # Example Multiclass classification
@@ -89,9 +89,9 @@ def make_dataset():
 if __name__ == '__main__':
     nn = make_network().state_dict()
     network_structure = [list(v.shape) for _, v in nn.items()]
-    population = PopulationParameters(population_size=250)
+    population = PopulationParameters(population_size=22)
     mutation = GaussianMutationStrategy(network_structure, 1e-1)
-    crossover = LayerBasedCrossoverStrategy(network_structure)
+    crossover = Best1BinCrossoverStrategy(1., network_structure)
     init = GaussianInitializationStrategy(
         mean=0., std=1., network_structure=network_structure)
 
@@ -111,5 +111,5 @@ if __name__ == '__main__':
         initialization_strategy=init,
         crossover_strategy=crossover,
         callbacks={'on_evaluation': _evaluate},
-        num_processors=8)
+        num_processors=1)
     ga.run()
