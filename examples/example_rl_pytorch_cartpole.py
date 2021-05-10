@@ -22,9 +22,17 @@ from nnga import nnGA, GaussianInitializationStrategy, \
 # ------------
 # In this example we see how to use Genetic Algorithms
 # to solve the cartpole environment
+#
+# Required dependencies:
+# - Numpy
+# - Pytorch
+# - Gym (pip install gym)
+# - Box2d (pip install -e '.[box2d]'
+#
 
 
 def make_network(parameters=None):
+    ''' Function that creates a network given a set of parameters '''
     neural_network = torch.nn.Sequential(
         torch.nn.Linear(4, 64), torch.nn.ReLU(), torch.nn.Linear(64, 2))
 
@@ -36,16 +44,23 @@ def make_network(parameters=None):
     return neural_network
 
 
-def fitness(idx, parameters, episodes):
+def fitness(idx, parameters, episodes, plot=False):
+    ''' Runs a sequence of episodes and returns the avg reward '''
     env = gym.make('CartPole-v1')
     network = make_network(parameters)
 
     rewards = []
     for n in range(episodes):
         done = False
+        # Reset environment
         state = env.reset()
         total_episode_reward = 0.
         while not done:
+            # Render environment
+            if plot:
+                env.render()
+
+            # Select action
             with torch.no_grad():
                 action = network(torch.tensor([state], dtype=torch.float32))
                 action = torch.argmax(action).item()
@@ -55,16 +70,22 @@ def fitness(idx, parameters, episodes):
         env.close()
         rewards.append(total_episode_reward)
 
-    return np.mean(rewards) - (1.96 * np.std(rewards) / np.sqrt(episodes))
+    return np.mean(rewards)
 
 
 def on_evaluation(epoch, fitnesses, population, best_result, best_network):
+    ''' Callback called at the end of each GA epoch.
+        If true, GA stops.
+
+        495 is a good result for cartpole
+    '''
     if best_result > 495:
         return True
     return False
 
 
 if __name__ == '__main__':
+    # Initialize GA parameters
     nn = make_network().state_dict()
     network_structure = [list(v.shape) for _, v in nn.items()]
     population = PopulationParameters(population_size=100)
@@ -85,4 +106,9 @@ if __name__ == '__main__':
         crossover_strategy=crossover,
         callbacks={'on_evaluation': on_evaluation},
         num_processors=8)
-    ga.run()
+
+    # Run GA
+    network_parameters, best_result, results = ga.run()
+
+    # Visualize final network
+    fitness(0, network_parameters, 1, plot=True)

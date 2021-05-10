@@ -37,28 +37,28 @@ class PopulationParameters(object):
                              'the elite/offsprings (it should sum to 1)')
 
     @property
-    def size(self):
+    def size(self) -> int:
         return self.population_size
 
     @property
-    def elite_size(self):
+    def elite_size(self) -> int:
         return int(np.ceil(self.population_size * self.elite_fraction))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.population_size
 
     @property
-    def offsprings_from_elite_leader(self):
+    def offsprings_from_elite_leader(self) -> int:
         return int(self.size * self.offsprings_from_elite_leader_fraction)
 
     @property
-    def offsprings_from_elite_group(self):
+    def offsprings_from_elite_group(self) -> int:
         return int(self.size * self.offsprings_from_elite_group_fraction)
 
     @property
-    def random_offsprings(self):
+    def random_offsprings(self) -> int:
         return int(self.size * self.rnd_offsprings_fraction)
 
     @property
-    def crossover_size(self):
+    def crossover_size(self) -> int:
         return int(np.ceil(self.size * self.crossover_fraction))

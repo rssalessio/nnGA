@@ -21,9 +21,17 @@ from nnga import nnGA, GaussianInitializationStrategy, \
 # ------------
 # In this example we see how to use Genetic Algorithms
 # to solve the discrete LunarLander environment
+#
+# Required dependencies:
+# - Numpy
+# - Pytorch
+# - Gym (pip install gym)
+# - Box2d (pip install -e '.[box2d]'
+#
 
 
 def make_network(parameters=None):
+    ''' Function that creates a network given a set of parameters '''
     neural_network = torch.nn.Sequential(
         torch.nn.Linear(8, 64), torch.nn.ReLU(), torch.nn.Linear(64, 4))
 
@@ -35,22 +43,30 @@ def make_network(parameters=None):
     return neural_network
 
 
-def fitness(idx, parameters, episodes):
+def fitness(idx, parameters, episodes, plot=False):
+    ''' Runs a sequence of episodes and returns the avg reward '''
     env = gym.make('LunarLander-v2')
     network = make_network(parameters)
 
     avg_total_reward = 0.
     for n in range(episodes):
         done = False
+        # Reset environment
         state = env.reset()
         total_episode_reward = 0.
         while not done:
+            # Render environment
+            if plot:
+                env.render()
+
+            # Select action
             with torch.no_grad():
                 action = network(torch.tensor([state], dtype=torch.float32))
                 action = torch.argmax(action).item()
             state, reward, done, _ = env.step(action)
             total_episode_reward += reward
 
+        # Avg episode reward
         avg_total_reward = (n * avg_total_reward + total_episode_reward) / (
             n + 1)
 
@@ -60,12 +76,18 @@ def fitness(idx, parameters, episodes):
 
 
 def on_evaluation(epoch, fitnesses, population, best_result, best_network):
+    ''' Callback called at the end of each GA epoch.
+        If true, GA stops.
+
+        195 is a good result for lunar lander.
+    '''
     if best_result > 195:
         return True
     return False
 
 
 if __name__ == '__main__':
+    # Initialize GA parameters
     nn = make_network().state_dict()
     network_structure = [list(v.shape) for _, v in nn.items()]
 
@@ -87,4 +109,9 @@ if __name__ == '__main__':
         crossover_strategy=crossover,
         callbacks={'on_evaluation': on_evaluation},
         num_processors=8)
-    ga.run()
+
+    # Run GA
+    network_parameters, best_result, results = ga.run()
+
+    # Visualize final network
+    fitness(0, network_parameters, 1, plot=True)

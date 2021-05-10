@@ -22,6 +22,11 @@ from nnga import nnGA, GaussianInitializationStrategy, \
 # ------------
 # In this example we see how to use Genetic Algorithms
 # to solve a multiclass classification problem
+#
+# Required dependencies:
+# - Numpy
+# - Pytorch
+#
 
 
 def make_network(parameters=None):

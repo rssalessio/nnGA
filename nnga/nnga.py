@@ -29,6 +29,47 @@ logger = logging.getLogger('nnGA')
 
 
 class nnGA(object):
+    ''' Genetic Algorithm (GA) for Neural Networks
+        GA is made out of 4 elements:
+            1. A population of candidates
+            2. A fitness function for the candidates
+            3. A mutation strategy for the candidates
+            4. A reproduction/crossover strategy for the candidates
+
+        GA runs for N epochs. In each epoch every candidate
+        is evaluated according to the fitness function.
+        Unfit candidates are then removed from the population.
+        New elements are then added to the population according to
+        the mutation strategy, and the crossover strategy.
+
+        Parameters
+        -----------
+        epochs: int
+            Number of epochs
+        fitness_function: Callable[[int, list], float]
+            Fitness function. It should accept an integer, and a list
+            of parameters. Returns a real value
+        population_parameters: PopulationParameters
+            Object that defines the properties of the population
+        crossover_strategy: CrossoverStrategy
+            Strategy that defines how to perform crossover
+            on 2/3 candidates
+        initialization_strategy: InitializationStrategy
+            Strategy that defines how new candidates are randomly
+            sampled from the space of candidates.
+        mutation_strategy: MutationStrategy
+            Strategy that defines how to perform mutation
+            on a single candidate.
+        initial_population: list, optional
+            List of candidates that can be loaded at the beginning
+        callbacks: Mapping[str, Callable[[int, list, list, float, list], float]], optional
+            A dictionary of callbacks. The keys can be
+            ['on_epoch_start', 'on_epoch_end', 'on_evaluation', 'population_constraints']
+            Each callback should accept
+            (epoch, fitnesses, population, best_result, best_network)
+        num_processors: int, optional
+            Number of cores to use
+    '''
     def __init__(
             self,
             epochs: int,
@@ -64,14 +105,16 @@ class nnGA(object):
         self.crossover_strategy = crossover_strategy
 
     def _generate_initial_population(self) -> list:
-        # Generate initial population
+        ''' Sample an initial population '''
         if not self.initial_population:
-            logger.info('Sampled random initial population.')
+            # Sample a random population
             population = [
                 self.initialization_strategy.sample_network()
                 for _ in range(self.population.size)
             ]
+            logger.info('Sampled random initial population.')
         else:
+            # Load a population
             population = [deepcopy(x) for x in self.initial_population]
             while len(population) < self.population.size:
                 for x in self.initial_population:
@@ -85,7 +128,7 @@ class nnGA(object):
         return population
 
     def _select_elite_population(self, population, fitnesses):
-        # Select elite population
+        ''' Select elite candidates '''
         elite = sorted(
             zip(fitnesses, population), key=lambda x: x[0],
             reverse=True)[:self.population.elite_size]
@@ -95,6 +138,17 @@ class nnGA(object):
         return best_result, best_network, elite_pop
 
     def run(self):
+        ''' Runs the GA algorithm
+        Returns
+        --------
+        best_network: list
+            Best candidate
+        best_result: float
+            Fitness value for the best candidate
+        results: list[float]
+            Fitness results for each epoch
+        '''
+
         logger.info('Starting nnGA')
         best_network, best_result = None, 0.
         results = []
@@ -196,8 +250,11 @@ class nnGA(object):
             return []
         L = len(elite_population)
 
-        # Pick couples
-        pairs = np.array([(i, j) for i in range(L) for j in range(i + 1, L)])
+        # Pick couples + a third one that is different from the other two
+        # pairs = np.array([(i, j, 0 if i != 0 else min(j + 1, L - j + 1))
+        #                   for i in range(L) for j in range(i + 1, L)])
+        pairs = np.array([(i, j, 0 if i != 0 else j + 1 if j <= L//2 else j-1)
+                          for i in range(L) for j in range(i + 1, L)])
         L = len(pairs)
         num_couples = n if L >= n else L
         idx = np.random.choice(len(pairs), size=num_couples, replace=False)
@@ -206,12 +263,12 @@ class nnGA(object):
 
         # Apply crossover to each couple
         return [
-            self._crossover_couple(elite_population[x], elite_population[y])
-            for x, y in couples
+            self._crossover_couple(elite_population[x], elite_population[y],
+                                   elite_population[z]) for x, y, z in couples
         ]
 
-    def _crossover_couple(self, x: list, y: list) -> list:
-        offspring = self.crossover_strategy.crossover(x, y)
+    def _crossover_couple(self, x: list, y: list, z: list) -> list:
+        offspring = self.crossover_strategy.crossover(x, y, z)
 
         if np.random.uniform(
         ) < self.population.crossover_mutation_probability:
