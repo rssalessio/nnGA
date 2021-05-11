@@ -23,7 +23,7 @@ To learn how to use nnGA, check the following examples:
     * [Lunarlander example](https://github.com/rssalessio/nnGA/blob/master/examples/example_rl_pytorch_lunarlander.py)
 
 2. Supervised learning examples
-    * [Multiclass classification](https://github.com/rssalessio/nnGA/blob/master/examples/example_rl_pytorch_lunarlander.py)
+    * [Multiclass classification](https://github.com/rssalessio/nnGA/blob/master/examples/example_multiclass_classification.py)
 
 In general the code has the following structure
 ```python
