@@ -11,10 +11,11 @@
 import sys
 import torch
 import gym
+import numpy as np
 sys.path.append("..")
 
 from nnga import nnGA, GaussianInitializationStrategy, \
-    GaussianMutationStrategy, BasicCrossoverStrategy, \
+    GaussianMutationStrategy, LayerBasedCrossoverStrategy, \
     PopulationParameters
 
 # Example Reinforcement Learning - LunarLander
@@ -48,7 +49,7 @@ def fitness(idx, parameters, episodes, plot=False):
     env = gym.make('LunarLander-v2')
     network = make_network(parameters)
 
-    avg_total_reward = 0.
+    rewards = []
     for n in range(episodes):
         done = False
         # Reset environment
@@ -67,12 +68,11 @@ def fitness(idx, parameters, episodes, plot=False):
             total_episode_reward += reward
 
         # Avg episode reward
-        avg_total_reward = (n * avg_total_reward + total_episode_reward) / (
-            n + 1)
+        rewards.append(total_episode_reward)
 
         env.close()
 
-    return avg_total_reward
+    return np.mean(rewards)  # - 1.96 * np.std(rewards) / np.sqrt(episodes)
 
 
 def on_evaluation(epoch, fitnesses, population, best_result, best_network):
@@ -81,7 +81,7 @@ def on_evaluation(epoch, fitnesses, population, best_result, best_network):
 
         195 is a good result for lunar lander.
     '''
-    if best_result > 195:
+    if best_result > 170:
         return True
     return False
 
@@ -91,17 +91,24 @@ if __name__ == '__main__':
     nn = make_network().state_dict()
     network_structure = [list(v.shape) for _, v in nn.items()]
 
-    population = PopulationParameters(population_size=200)
+    population = PopulationParameters(
+        population_size=200,
+        elite_fraction=0.05,
+        offsprings_from_elite_leader_fraction=0.5,
+        offsprings_from_elite_group_fraction=0.45,
+        crossover_fraction=0.,
+        rnd_offsprings_fraction=0.)
+
     mutation = GaussianMutationStrategy(network_structure, 1e-1)
-    crossover = BasicCrossoverStrategy(network_structure)
+    crossover = LayerBasedCrossoverStrategy(network_structure)
     init = GaussianInitializationStrategy(
         mean=0., std=1., network_structure=network_structure)
 
     def _fitness(args):
-        return fitness(*args, episodes=10)
+        return fitness(*args, episodes=20)
 
     ga = nnGA(
-        epochs=50,
+        epochs=100,
         fitness_function=_fitness,
         population_parameters=population,
         mutation_strategy=mutation,
@@ -114,4 +121,5 @@ if __name__ == '__main__':
     network_parameters, best_result, results = ga.run()
 
     # Visualize final network
-    fitness(0, network_parameters, 1, plot=True)
+    print('Final reward: {}'.format(
+        fitness(0, network_parameters, 10, plot=True)))

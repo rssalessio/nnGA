@@ -111,4 +111,5 @@ if __name__ == '__main__':
     network_parameters, best_result, results = ga.run()
 
     # Visualize final network
-    fitness(0, network_parameters, 1, plot=True)
+    print('Final reward: {}'.format(
+        fitness(0, network_parameters, 10, plot=True)))
