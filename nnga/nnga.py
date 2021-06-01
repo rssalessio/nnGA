@@ -181,6 +181,9 @@ class nnGA(object):
                     break
 
             if epoch < self.epochs - 1:
+                # Update mutation strategy based on elite population
+                self.mutation_strategy.update_parameters(epoch, elite_pop)
+
                 # Perform mutation/crossover
                 population = self._evolve_population(elite_pop)
                 if 'population_constraints' in self.callbacks:
