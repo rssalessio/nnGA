@@ -33,6 +33,9 @@ class MutationStrategy(object):
             self.exploration_rate_scheduler(
                 initial_epoch, self.network_structure, self.exploration_noise)
 
+    def update_parameters(self, epoch: int, elite_networks: list):
+        pass
+
     def mutate(self, network: list) -> list:
         return network
 
@@ -62,5 +65,28 @@ class UniformMutationStrategy(MutationStrategy):
         return [
             network[i] + np.random.uniform(low=-1, high=1, size=x) *
             self.exploration_noise[i]
+            for i, x in enumerate(self.network_structure)
+        ]
+
+class CrossEntropyMutationStrategy(MutationStrategy):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.means = []
+        self.std = []
+
+
+    def update_parameters(self, epoch: int, elite_networks: list):
+        self.means = [
+            np.mean([network[layer] for network in elite_networks], axis=0)
+            for layer, _ in enumerate(self.network_structure)
+        ]
+        self.means = [
+            np.std([network[layer] for network in elite_networks], axis=0) + self.exploration_noise[layer]
+            for layer, _ in enumerate(self.network_structure)
+        ]
+
+    def mutate(self, network: list) -> list:
+        return [
+            self.means[i] + np.random.normal(size=x) * self.std[i]
             for i, x in enumerate(self.network_structure)
         ]

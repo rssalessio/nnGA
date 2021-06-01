@@ -17,4 +17,4 @@ from .population_parameters import *
 __version__ = '0.3'
 __author__ = 'Alessio Russo'
 __contributors__ = []
-__date__ = '08.05.2021'
+__date__ = '02.06.2021'
