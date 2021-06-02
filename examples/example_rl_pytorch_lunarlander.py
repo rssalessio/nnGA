@@ -72,7 +72,7 @@ def fitness(idx, parameters, episodes, plot=False):
 
         env.close()
 
-    return np.mean(rewards)  # - 1.96 * np.std(rewards) / np.sqrt(episodes)
+    return np.mean(rewards) - 1.96 * np.std(rewards) / np.sqrt(episodes)
 
 
 def on_evaluation(epoch, fitnesses, population, best_result, best_network):
