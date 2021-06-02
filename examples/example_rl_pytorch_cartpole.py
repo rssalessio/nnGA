@@ -16,7 +16,7 @@ sys.path.append("..")
 
 from nnga import nnGA, GaussianInitializationStrategy, \
     GaussianMutationStrategy, LayerBasedCrossoverStrategy, \
-    PopulationParameters
+    PopulationParameters, CrossEntropyMutationStrategy
 
 # Example Reinforcement Learning - Cartpole
 # ------------
@@ -84,18 +84,27 @@ def on_evaluation(epoch, fitnesses, population, best_result, best_network):
     return False
 
 
+def _fitness(args):
+    return fitness(*args, episodes=100)
+
+
 if __name__ == '__main__':
     # Initialize GA parameters
     nn = make_network().state_dict()
     network_structure = [list(v.shape) for _, v in nn.items()]
     population = PopulationParameters(population_size=100)
-    mutation = GaussianMutationStrategy(network_structure, 1e-1)
+
+    # Use CrossEntropy strategy
+    mutation = CrossEntropyMutationStrategy(network_structure, 1e-1)
+
+    # Uncomment to use Gaussian exploration
+    # mutation = GaussianMutationStrategy(network_structure, 1e-1)
+
     crossover = LayerBasedCrossoverStrategy(network_structure)
     init = GaussianInitializationStrategy(
         mean=0., std=1., network_structure=network_structure)
 
-    def _fitness(args):
-        return fitness(*args, episodes=100)
+
 
     ga = nnGA(
         epochs=100,
@@ -105,7 +114,7 @@ if __name__ == '__main__':
         initialization_strategy=init,
         crossover_strategy=crossover,
         callbacks={'on_evaluation': on_evaluation},
-        num_processors=8)
+        num_processors=2)
 
     # Run GA
     network_parameters, best_result, results = ga.run()

@@ -91,6 +91,14 @@ def make_dataset():
     return Tdataset, Vdataset
 
 
+def _fitness(args):
+    return fitness(*args, data=trn_data)
+
+
+def _evaluate(*args):
+    return on_evaluation(*args, data=val_data)
+
+
 if __name__ == '__main__':
     nn = make_network().state_dict()
     network_structure = [list(v.shape) for _, v in nn.items()]
@@ -101,12 +109,6 @@ if __name__ == '__main__':
         mean=0., std=1., network_structure=network_structure)
 
     trn_data, val_data = make_dataset()
-
-    def _fitness(args):
-        return fitness(*args, data=trn_data)
-
-    def _evaluate(*args):
-        return on_evaluation(*args, data=val_data)
 
     ga = nnGA(
         epochs=100,
